@@ -555,7 +555,9 @@ func (this Node) FileInjects(baseDir string) string {
 	injects := make([]string, len(this.InjectionsF))
 
 	for i, inject := range this.InjectionsF {
-		if strings.HasPrefix(inject.SrcF, "/") {
+		if inject.SrcF == "-DELETE-" || inject.SrcF == "DELETE" || inject.SrcF == "TERMINATE" || inject.SrcF == "TERMINATED" {
+			injects[i] = fmt.Sprintf(`"-DELETE-":"%s"`, inject.DstF)
+		} else if strings.HasPrefix(inject.SrcF, "/") {
 			injects[i] = fmt.Sprintf(`"%s":"%s"`, inject.SrcF, inject.DstF)
 		} else {
 			injects[i] = fmt.Sprintf(`"%s/%s":"%s"`, baseDir, inject.SrcF, inject.DstF)
