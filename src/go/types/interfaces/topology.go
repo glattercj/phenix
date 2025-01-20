@@ -28,6 +28,7 @@ type NodeSpec interface {
 	Hardware() NodeHardware
 	Network() NodeNetwork
 	Injections() []NodeInjection
+	Deletions() []NodeDeletion
 	Delay() NodeDelay
 	Advanced() map[string]string
 	Overrides() map[string]string
@@ -35,12 +36,14 @@ type NodeSpec interface {
 	External() bool
 
 	SetInjections([]NodeInjection)
+	SetDeletions([]NodeDeletion)
 
 	AddLabel(string, string)
 	AddHardware(string, int, int) NodeHardware
 	AddNetworkInterface(string, string, string) NodeNetworkInterface
 	AddNetworkRoute(string, string, int)
 	AddInject(string, string, string, string)
+	AddDeletion(string, string)
 
 	SetAdvanced(map[string]string)
 	AddAdvanced(string, string)
@@ -204,6 +207,11 @@ type NodeInjection interface {
 	Dst() string
 	Description() string
 	Permissions() string
+}
+
+type NodeDeletion interface {
+	Path() string
+	Description() string
 }
 
 type NodeDelay interface {
