@@ -1,12 +1,13 @@
 # Update GitHub workflow config to change the minimum version of minimega
 # required for use with phenix. This build stage is needed for making sure the
 # latest version of the minimega Python module is installed.
-ARG  MM_MIN_REV=c8e20a3
-FROM ghcr.io/activeshadow/minimega/minimega:${MM_MIN_REV} AS minimega
-
+ARG MM_MIN_REV=c8e20a3
+#FROM ghcr.io/activeshadow/minimega/minimega:${MM_MIN_REV} AS minimega
+FROM --platform=$BUILDPLATFORM minimega:arm AS minimega
 
 # ** jsbuilder **
-FROM node:14.21.3 AS jsbuilder
+ARG BUILDPLATFORM
+FROM --platform=$BUILDPLATFORM node:14.21.3 AS jsbuilder
 
 ARG INSTALL_CERTS=
 RUN ["/bin/bash", "-c", "if [ -n $INSTALL_CERTS ]; then \
@@ -30,6 +31,7 @@ ARG PHENIX_BASE_PATH=/
 ENV VUE_APP_AUTH ${PHENIX_WEB_AUTH}
 ENV VUE_BASE_PATH ${PHENIX_BASE_PATH}
 
+RUN npm install node-sass@npm:sass
 RUN make dist/index.html
 
 COPY ./src/go/web/public/docs/openapi.yml /phenix/src/go/web/public/docs/openapi.yml
@@ -40,7 +42,8 @@ RUN npx redoc-cli build openapi.yml -o index.html --title 'phenix API'
 
 
 # ** gobuilder **
-FROM golang:1.20.7 AS gobuilder
+ARG BUILDPLATFORM
+FROM --platform=$BUILDPLATFORM golang:1.20.7 AS gobuilder
 
 RUN apt update \
   && apt install -y protobuf-compiler xz-utils
@@ -83,7 +86,9 @@ RUN CGO_ENABLED=0 GOOS=linux go install -trimpath ./...
 
 
 # ** Build the phenix image **
-FROM ubuntu:22.04
+ARG BUILDPLATFORM
+FROM --platform=$BUILDPLATFORM ubuntu:22.04
+
 
 # General image metadata
 # Reference: https://github.com/opencontainers/image-spec/blob/main/annotations.md
@@ -140,7 +145,8 @@ RUN wget -O glow.tgz https://github.com/charmbracelet/glow/releases/download/v1.
   && rm glow.tgz
 
 # used by scorch
-RUN wget -O filebeat.deb https://artifacts.elastic.co/downloads/beats/filebeat/filebeat-7.17.5-amd64.deb \
+ARG BUILDARCH
+RUN wget -O filebeat.deb https://artifacts.elastic.co/downloads/beats/filebeat/filebeat-8.17.1-$BUILDARCH.deb \
   && dpkg -i filebeat.deb \
   && rm filebeat.deb
 
