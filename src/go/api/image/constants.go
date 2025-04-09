@@ -1,10 +1,12 @@
 package image
 
 const POSTBUILD_APT_CLEANUP = `
+# --------------------------------------------------- Cleanup ----------------------------------------------------
 apt clean || apt-get clean || echo "unable to clean apt cache"
 `
 
 const POSTBUILD_NO_ROOT_PASSWD = `
+# ---------------------------------------------- No Root Password ------------------------------------------------
 sed -i 's/nullok_secure/nullok/' /etc/pam.d/common-auth
 sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
 sed -i 's/#PermitEmptyPasswords no/PermitEmptyPasswords yes/' /etc/ssh/sshd_config
@@ -14,6 +16,7 @@ passwd -d root
 `
 
 const POSTBUILD_PHENIX_HOSTNAME = `
+# -------------------------------------------------- Hostname ----------------------------------------------------
 echo "phenix" > /etc/hostname
 sed -i 's/127.0.1.1 .*/127.0.1.1 phenix/' /etc/hosts
 cat > /etc/motd <<EOF
@@ -30,6 +33,7 @@ echo "\nBuilt with phenix image on $(date)\n\n" >> /etc/motd
 `
 
 const POSTBUILD_PHENIX_BASE = `
+# ----------------------------------------------------- Base -----------------------------------------------------
 cat > /etc/systemd/system/miniccc.service <<EOF
 [Unit]
 Description=miniccc
@@ -67,11 +71,14 @@ mkdir -p /etc/phenix/startup
 `
 
 const POSTBUILD_GUI = `
-update-alternatives --set x-terminal-emulator /usr/bin/xfce4-terminal.wrapper
-echo "#!/bin/bash\nstartx" > /root/.profile
+# ----------------------------------------------------- GUI ------------------------------------------------------
+apt-get purge -y gdm3 # messes with no-root-password login
+mkdir -p /root/.config/xfce4/
+echo "TerminalEmulator=gnome-terminal" > /root/.config/xfce4/helpers.rc
 `
 
 const POSTBUILD_PROTONUKE = `
+# -------------------------------------------------- Protonuke ---------------------------------------------------
 cat > /etc/systemd/system/protonuke.service <<EOF
 [Unit]
 Description=protonuke
@@ -88,33 +95,30 @@ ln -s /etc/systemd/system/protonuke.service /etc/systemd/system/multi-user.targe
 `
 
 const POSTBUILD_ENABLE_DHCP = `
+# ----------------------------------------------------- DHCP -----------------------------------------------------
 echo "#!/bin/bash\ndhclient" > /etc/init.d/dhcp.sh
 chmod +x /etc/init.d/dhcp.sh
 update-rc.d dhcp.sh defaults 100
 `
 
 var PACKAGES_DEFAULT = []string{
-	"initramfs-tools",
-	"net-tools",
-	"isc-dhcp-client",
-	"openssh-server",
-	"init",
-	"iputils-ping",
-	"vim",
-	"less",
-	"netbase",
 	"curl",
-	"ifupdown",
-	"dbus",
+	"ethtool",
+	"ncat",
+	"net-tools",
+	"openssh-server",
+	"rsync",
+	"ssh",
+	"tcpdump",
+	"tmux",
+	"vim",
+	"wget",
 }
 
 var PACKAGES_KALI = []string{
 	"linux-image-amd64",
 	"linux-headers-amd64",
-	"default-jre",
-	"kali-linux-core",
-	"kali-tools-top10",
-	"python3-cffi-backend",
+	"default-jdk",
 }
 
 var PACKAGES_UBUNTU = []string{
@@ -123,21 +127,15 @@ var PACKAGES_UBUNTU = []string{
 }
 
 var PACKAGES_MINGUI = []string{
-	"xorg",
-	"xinit",
-	"dbus-x11",
-	"xserver-xorg",
-	"xserver-xorg-input-all",
-	"xserver-xorg-video-qxl",
-	"xserver-xorg-video-vesa",
-	"xfce4",
-	"xfce4-terminal",
+	"wmctrl",
+	"xdotool",
+	"xubuntu-desktop",
 }
 
 var PACKAGES_MINGUI_KALI = []string{
-	"xorg",
-	"xfce4-terminal",
 	"kali-desktop-xfce",
+	"wmctrl",
+	"xdotool",
 }
 
 var PACKAGES_COMPONENTS = []string{
@@ -151,4 +149,5 @@ var PACKAGES_COMPONENTS_KALI = []string{
 	"main",
 	"contrib",
 	"non-free",
+	"non-free-firmware",
 }

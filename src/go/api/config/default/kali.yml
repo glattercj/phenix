@@ -1,7 +1,7 @@
 apiVersion: phenix.sandia.gov/v1
 kind: Image
 metadata:
-  name: kali
+  name: PHENIX-kali
 spec:
   compress: true
   deb_append: ' --components=main,contrib,non-free'

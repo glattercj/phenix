@@ -28,7 +28,6 @@ import (
 const (
 	V_VERBOSE   int = 1
 	V_VVERBOSE  int = 2
-	V_VVVERBOSE int = 4
 )
 
 var (
@@ -36,47 +35,23 @@ var (
 	ErrProtonukeNotFound = fmt.Errorf("protonuke executable not found")
 )
 
-// SetDefaults will set default settings to image values if none are set by the
-// user. The default values are:
-//
-//	-- Image size at `5G`
-//	-- The variant is `minbase`
-//	-- The release is `bionic` (Ubuntu 18.04.4 LTS)
-//	-- The mirror is `http://us.archive.ubuntu.com/ubuntu/`
-//	-- The image format is `raw`
-//
-// This will also remove empty strings in packages and overlays; if overlays are
-// used, the default `/phenix/images` directory is added to the overlay name.
-// Based on the variant value, specific constants will be included during the
-// create sub-command. The values are passed from the `constants.go` file. An
-// error will be returned if the variant value is not valid (acceptable values
-// are `minbase` or `mingui`).
-func SetDefaults(img *v1.Image) error {
-	if img.Size == "" {
-		img.Size = "5G"
-	}
-
-	if img.Variant == "" {
-		img.Variant = "minbase"
-	}
-
-	if img.Release == "" {
-		img.Release = "bionic"
-	}
-
-	if img.Mirror == "" {
-		img.Mirror = "http://us.archive.ubuntu.com/ubuntu/"
-	}
-
-	if img.Format == "" {
-		img.Format = "raw"
-	}
-
-	if !strings.Contains(img.DebAppend, "--components=") {
+// SetupImage sets a Kali mirror if it wasn't set by the user and sets
+// default packages. Based on the variant value, specific constants will
+// be included during the create sub-command. The values are passed from the
+// `constants.go` file. An error will be returned if the variant value is not
+// valid (acceptable values are `minbase` or `mingui`).
+func SetupImage(img *v1.Image) error {
+	if img.Mirror == "http://us.archive.ubuntu.com/ubuntu" {
 		if img.Release == "kali" || img.Release == "kali-rolling" {
-			img.DebAppend += " --components=" + strings.Join(PACKAGES_COMPONENTS_KALI, ",")
+			img.Mirror = "http://http.kali.org/kali"
+		}
+	}
+
+	if len(img.Components) == 0 {
+		if img.Release == "kali" || img.Release == "kali-rolling" {
+			img.Components = append(img.Components, PACKAGES_COMPONENTS_KALI...)
 		} else {
-			img.DebAppend += " --components=" + strings.Join(PACKAGES_COMPONENTS, ",")
+			img.Components = append(img.Components, PACKAGES_COMPONENTS...)
 		}
 	}
 
@@ -134,23 +109,23 @@ func SetDefaults(img *v1.Image) error {
 }
 
 // Create collects image values from user input at command line, creates an
-// image configuration, and then persists it to the store. SetDefaults is used
-// to set default values if the user did not include any in the image create
-// sub-command. This sub-command requires an image `name`. It will return any
-// errors encoutered while creating the configuration.
-func Create(name string, img *v1.Image) error {
-	if name == "" {
+// image configuration, and then persists it to the store. SetupImage is used
+// to set default packages and constants. This sub-command requires an image
+// `name`. It will return any errors encoutered while creating the
+// configuration.
+func Create(img *v1.Image) error {
+	if img.Name == "" {
 		return fmt.Errorf("image name is required to create an image")
 	}
 
-	if err := SetDefaults(img); err != nil {
-		return fmt.Errorf("setting image defaults: %w", err)
+	if err := SetupImage(img); err != nil {
+		return fmt.Errorf("setting up image: %w", err)
 	}
 
 	c := store.Config{
 		Version:  "phenix.sandia.gov/v1",
 		Kind:     "Image",
-		Metadata: store.ConfigMetadata{Name: name},
+		Metadata: store.ConfigMetadata{Name: img.Name},
 		Spec:     structs.MapDefaultCase(img, structs.CASESNAKE),
 	}
 
@@ -235,10 +210,6 @@ func Build(ctx context.Context, name string, verbosity int, cache bool, dryrun b
 			return fmt.Errorf("decoding image spec: %w", err)
 		}
 
-		if verbosity >= V_VVVERBOSE {
-			img.VerboseLogs = true
-		}
-
 		img.Cache = cache
 
 		// The Kali package repos use `kali-rolling` as the release name.
@@ -268,7 +239,7 @@ func Build(ctx context.Context, name string, verbosity int, cache bool, dryrun b
 	}
 
 	if verbosity >= V_VVERBOSE {
-		args = append(args, "--log", "stderr")
+		args = append(args, "--log", output + "/" + name + ".log")
 	}
 
 	if dryrun {
