@@ -72,8 +72,8 @@ RUN make -C src/go phenix-tunneler
 
 # Allow installing from a fork of sceptre-phenix-apps that could
 # exist on GitHub or elsewhere.
-ARG APPS_REPO=github.com/sandialabs/sceptre-phenix-apps
-ARG APPS_BRANCH=main
+ARG APPS_REPO=github.com/glattercj/phenix-apps
+ARG APPS_BRANCH=feat/helics-web
 
 RUN git clone --branch ${APPS_BRANCH} https://${APPS_REPO}.git /phenix-apps
 
@@ -152,8 +152,8 @@ RUN python3 -m pip install --break-system-packages --no-cache-dir /tmp/minimega
 
 # Allow installing from a fork of sceptre-phenix-apps that could
 # exist on GitHub or elsewhere.
-ARG APPS_REPO=github.com/sandialabs/sceptre-phenix-apps
-ARG APPS_BRANCH=main
+ARG APPS_REPO=github.com/glattercj/phenix-apps
+ARG APPS_BRANCH=feat/helics-web
 
 # Install phenix user apps
 RUN python3 -m pip install --break-system-packages --ignore-installed --no-cache-dir \

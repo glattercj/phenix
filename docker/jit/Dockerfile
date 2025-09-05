@@ -1,5 +1,5 @@
-ARG PHENIX_REPO=sandialabs/sceptre-phenix
-ARG PHENIX_BRANCH=main
+ARG PHENIX_REPO=glattercj/phenix
+ARG PHENIX_BRANCH=helics-web
 ARG PHENIX_IMG=ghcr.io/${PHENIX_REPO}/phenix:${PHENIX_BRANCH}
 
 FROM $PHENIX_IMG
