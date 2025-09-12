@@ -21,6 +21,7 @@ func init() {
 }
 
 type TapAppMetadata struct {
+	Host string     `mapstructure:"host"`
 	Taps []*tap.Tap `mapstructure:"taps"`
 }
 
@@ -72,11 +73,15 @@ func (this *Tap) PostStart(ctx context.Context, exp *types.Experiment) error {
 		vlans []string
 	)
 
+	if amd.Host != "" {
+		host = amd.Host
+	}
+
 	status := TapAppStatus{Host: host}
 
 	for _, t := range amd.Taps {
 		if slices.Contains(vlans, t.VLAN) {
-			return fmt.Errorf("tap already created for VLAN %s", t.VLAN)
+			return fmt.Errorf("tap already created for VLAN %s on host %s", t.VLAN, host)
 		}
 
 		opts := []tap.Option{tap.Experiment(exp.Metadata.Name), tap.UsedPairs(pairs)}
@@ -92,7 +97,7 @@ func (this *Tap) PostStart(ctx context.Context, exp *types.Experiment) error {
 
 		pair, err := t.Create(host)
 		if err != nil {
-			return fmt.Errorf("creating host tap for VLAN %s: %w", t.VLAN, err)
+			return fmt.Errorf("creating host tap for VLAN %s on host %s: %w", t.VLAN, host, err)
 		}
 
 		if !pair.IsZero() {
