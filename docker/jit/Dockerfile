@@ -1,9 +1,8 @@
-ARG PHENIX_REPO=sandialabs/sceptre-phenix
-ARG PHENIX_BRANCH=main
+ARG PHENIX_REPO=glattercj/phenix
+ARG PHENIX_BRANCH=updates
 ARG PHENIX_IMG=ghcr.io/${PHENIX_REPO}/phenix:${PHENIX_BRANCH}
 
-#FROM $PHENIX_IMG
-FROM phenix
+FROM $PHENIX_IMG
 
 # https://docs.docker.com/engine/reference/builder/#understand-how-arg-and-from-interact
 ARG PHENIX_REPO
