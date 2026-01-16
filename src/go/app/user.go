@@ -146,6 +146,12 @@ func (this UserApp) shellOut(ctx context.Context, action Action, exp *types.Expe
 		return fmt.Errorf("user app %s command %s failed: %w", this.options.Name, cmdName, err)
 	}
 
+	// Even if the command succeeds, we want to log any stderr output as info
+	// so that we can see any logs printed to the console by the user app.
+	if len(stdErr) > 0 {
+		plog.Info(plog.TypePhenixApp, "app stderr output", "stderr", string(stdErr), "app", this.options.Name, "action", action, "exp", exp)
+	}
+
 	// If we make it to this point, then the user app exited with a 0 exit code.
 	// If the user app didn't make any modifications, then we don't require it to
 	// output an experiment config. So, if there's nothing on STDOUT then just
@@ -176,4 +182,3 @@ func (this UserApp) shellOut(ctx context.Context, action Action, exp *types.Expe
 	}
 	return nil
 }
-

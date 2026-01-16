@@ -9,7 +9,7 @@ import (
 	"syscall"
 )
 
-var(
+var (
 	haveWarnedLoggingFormat = false
 )
 
@@ -21,10 +21,10 @@ var(
 func ReadProcessLogs(logPipePath string, logType LogType, attrs ...any) (chan<- struct{}, error) {
 
 	if err := os.MkdirAll(filepath.Dir(logPipePath), 0755); err != nil {
-        return nil, fmt.Errorf("error creating directory for app logs [%s]: %w", logPipePath, err)
-    }
+		return nil, fmt.Errorf("error creating directory for app logs [%s]: %w", logPipePath, err)
+	}
 	os.Remove(logPipePath)
-	err :=  syscall.Mkfifo(logPipePath, 0644)
+	err := syscall.Mkfifo(logPipePath, 0644)
 	if err != nil {
 		return nil, fmt.Errorf("error creating file for process logs [%s]: %w", logPipePath, err)
 	}
@@ -33,8 +33,10 @@ func ReadProcessLogs(logPipePath string, logType LogType, attrs ...any) (chan<- 
 	processDone := make(chan struct{})
 
 	go func() {
+		fmt.Fprintf(os.Stderr, "DEBUG PLOG: Opening pipe %s\n", logPipePath)
 		logFile, err := os.OpenFile(logPipePath, os.O_RDONLY, os.ModeNamedPipe)
 		if err != nil {
+			fmt.Fprintf(os.Stderr, "DEBUG PLOG: Error opening pipe: %v\n", err)
 			Error(logType, "error opening named pipe for reading logs", attrs...)
 			return
 		}
@@ -44,6 +46,7 @@ func ReadProcessLogs(logPipePath string, logType LogType, attrs ...any) (chan<- 
 
 		scanner := bufio.NewScanner(logFile)
 		for scanner.Scan() {
+			fmt.Fprintf(os.Stderr, "DEBUG PLOG: Read line: %s\n", scanner.Text())
 			log := scanner.Bytes()
 			parts := map[string]interface{}{}
 			err := json.Unmarshal(scanner.Bytes(), &parts)
@@ -62,7 +65,7 @@ func ReadProcessLogs(logPipePath string, logType LogType, attrs ...any) (chan<- 
 				}
 				msg, ok := parts["msg"]
 				if !ok {
-					Warn(logType, "could not find msg key in log",  append([]any{"log", string(log)}, attrs...)...)
+					Warn(logType, "could not find msg key in log", append([]any{"log", string(log)}, attrs...)...)
 					Info(logType, string(log), attrs...)
 					continue
 				}
@@ -72,7 +75,7 @@ func ReadProcessLogs(logPipePath string, logType LogType, attrs ...any) (chan<- 
 					parts["proc_time"] = t
 					delete(parts, "time")
 				}
-							
+
 				delete(parts, "msg")
 				delete(parts, "level")
 				extras := attrs[:]
@@ -85,6 +88,7 @@ func ReadProcessLogs(logPipePath string, logType LogType, attrs ...any) (chan<- 
 		}
 		err = scanner.Err()
 		if err != nil {
+			fmt.Fprintf(os.Stderr, "DEBUG PLOG: Scanner error: %v\n", err)
 			Error(logType, "error reading logs", attrs...)
 			return
 		}
@@ -92,17 +96,17 @@ func ReadProcessLogs(logPipePath string, logType LogType, attrs ...any) (chan<- 
 
 	go func() {
 		select {
-        case <-readDone:
-            return
-        case <-processDone:
+		case <-readDone:
+			return
+		case <-processDone:
 			// if the process channel closes before the read channel, the process may have never opened the file
 			// open here to stop blocking call and allow above goroutine to finish
-            f, err := os.OpenFile(logPipePath, os.O_WRONLY, 0600)
+			f, err := os.OpenFile(logPipePath, os.O_WRONLY, 0600)
 			if err == nil {
 				f.Close()
 			}
 			return
-        }
+		}
 	}()
 
 	return processDone, nil
